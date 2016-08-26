@@ -5,6 +5,7 @@ from tensorflow.examples.tutorials.mnist import input_data
 mnist = input_data.read_data_sets('MNIST_data/', one_hot=True)
 
 import tensorflow as tf
+import numpy as np
 
 #避免建立模型时反复初始化，定义两个函数用于初始化
 #初始化权重
@@ -51,12 +52,35 @@ h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 keep_prob = tf.placeholder('float')
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
+print(h_fc1_drop.get_shape())
+
 sess = tf.Session()
 sess.run(tf.initialize_all_variables())
 
-for step in range(5000):
-    batch = mnist.train.next_batch(50)
-    feed_dict = {x:batch[0], keep_prob:0.5}
-    sess.run(h_fc1_drop, feed_dict=feed_dict)
-    if step % 100 == 0:
-        print('Training step', step)
+#for step in range(5000):
+#    batch = mnist.train.next_batch(50)
+#    feed_dict = {x:batch[0], keep_prob:0.5}
+#    sess.run(h_fc1_drop, feed_dict=feed_dict)
+#    if step % 100 == 0:
+#        print('Training step', step)
+
+features = sess.run(h_fc1_drop,feed_dict={x:mnist.test.images})
+sess.close()
+
+k = 10
+centroides = tf.Variable(tf.slice(tf.random_shuffle(features),[0,0],[k,-1]))
+expanded_features = tf.expand_dims(features, 0)
+expanded_centroides = tf.expand_dims(centroides, 1)
+assignments = tf.argmin(tf.reduce_sum(tf.square(tf.sub(expanded_features, expanded_centroides)), 2), 0)
+means = tf.concat(0, [tf.reduce_mean(tf.gather(features, tf.reshape(tf.where(tf.equal(assignments, c)), [1,-1])), 1) for c in range(k))
+
+update_centroides = tf.assign(centroides, means)
+init_op = tf.initialize_all_variables()
+
+sess.run(init_op)
+for step in range(100):
+    _, centroid_values, assignment_values = sess.run([update_centroides, centroides, assignments])
+
+
+
+
