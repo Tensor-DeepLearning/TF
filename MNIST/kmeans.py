@@ -52,35 +52,45 @@ h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 keep_prob = tf.placeholder('float')
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
-print(h_fc1_drop.get_shape())
-
 sess = tf.Session()
 sess.run(tf.initialize_all_variables())
 
-#for step in range(5000):
-#    batch = mnist.train.next_batch(50)
-#    feed_dict = {x:batch[0], keep_prob:0.5}
-#    sess.run(h_fc1_drop, feed_dict=feed_dict)
-#    if step % 100 == 0:
-#        print('Training step', step)
+for step in range(100):
+    batch = mnist.train.next_batch(50)
+    feed_dict = {x:batch[0], keep_prob:0.5}
+    sess.run(h_fc1_drop, feed_dict=feed_dict)
+    if step % 100 == 0:
+        print('Training step', step)
 
-features = sess.run(h_fc1_drop,feed_dict={x:mnist.test.images})
-sess.close()
+features = sess.run(h_fc1_drop,feed_dict={x:mnist.test.images, keep_prob:0.5})
+#sess.close()
 
 k = 10
 centroides = tf.Variable(tf.slice(tf.random_shuffle(features),[0,0],[k,-1]))
 expanded_features = tf.expand_dims(features, 0)
 expanded_centroides = tf.expand_dims(centroides, 1)
 assignments = tf.argmin(tf.reduce_sum(tf.square(tf.sub(expanded_features, expanded_centroides)), 2), 0)
-means = tf.concat(0, [tf.reduce_mean(tf.gather(features, tf.reshape(tf.where(tf.equal(assignments, c)), [1,-1])), 1) for c in range(k))
+means = tf.concat(0, [tf.reduce_mean(tf.gather(features, tf.reshape(tf.where(tf.equal(assignments, c)), [1,-1])), 1) for c in range(k)])
 
 update_centroides = tf.assign(centroides, means)
+
+y = tf.placeholder('float')
+labels = tf.constant(mnist.test.labels)
+
 init_op = tf.initialize_all_variables()
 
 sess.run(init_op)
-for step in range(100):
+for step in range(1):
     _, centroid_values, assignment_values = sess.run([update_centroides, centroides, assignments])
+    if step % 5 == 0:
+        print('step %d, new centroides is'%step, centroid_values)
+labels_1d = tf.argmax(labels, 1)
 
-
-
+for i in range(k):
+    index_in_label = tf.gather(labels_1d, tf.reshape(tf.where(tf.equal(assignments, i)), [1,-1]))
+    result_one_cluster = tf.concat(0, [tf.reduce_sum(tf.reshape(tf.cast(tf.equal(index_in_label, c), 'float'), [1,-1]), 1) for c in range(k)])
+    max_result_arg = tf.argmax(result_one_cluster, 0)
+    sum_result = tf.reduce_sum(result_one_cluster, 0)
+    vector, index, sum_value = sess.run([result_one_cluster, max_result_arg, sum_result])
+    print(vector[index]/sum_value)
 
