@@ -32,19 +32,19 @@ output, state = tf.contrib.rnn.static_rnn(lstm_cell, x_list, dtype=tf.float32)
 prediction = tf.add(tf.matmul(output[-1], W), b)
 
 loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits=prediction, labels=y))
-tf.summary.scalar('cross_entropy', loss)
+tf.summary.scalar('cross_entropy', loss) #统计损失函数，交叉熵
 
 opt = tf.train.AdamOptimizer(learning_rate).minimize(loss)
 
 correct_prediction = tf.equal(tf.argmax(prediction, 1), tf.argmax(y, 1))
 accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-tf.summary.scalar('accuracy', accuracy)
+tf.summary.scalar('accuracy', accuracy) #统计正确率
 
 init = tf.global_variables_initializer()
-summary_merge = tf.summary.merge_all()
+summary_merge = tf.summary.merge_all() #对统计量做merge的op
 
 sess = tf.Session()
-summary_writer = tf.summary.FileWriter('./summaries/', sess.graph)
+summary_writer = tf.summary.FileWriter('./summaries/', sess.graph) #定义写统计，第一个参数为文件夹地址，第二个可选，我们同时将模型结构图写入
 
 sess.run(init)
 
@@ -59,7 +59,7 @@ for i in range(iter_num):
     batch_x = np.reshape(batch_x, [-1, n_steps, n_input])
 
     _, l, s = sess.run([opt, loss, summary_merge], feed_dict={x:batch_x, y:batch_y})
-    if i % disp_step == 0:
+    if i % disp_step == 0: #每disp_step写入一次统计量
         summary_writer.add_summary(s, i)
         s, acc = sess.run([summary_merge, accuracy], feed_dict={x:test_x, y:test_y})
         summary_writer.add_summary(s, i)
