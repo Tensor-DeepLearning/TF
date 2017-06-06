@@ -24,7 +24,7 @@ f = open(os.path.join(path, 'metadata.tsv'), 'w')
 #[内容] ...
 for i in range(N):
     f.write(str(labels[i]) + '\n')
-
+f.close()
 #创建变量，用来表示样本数据，一共10000个样本，每个样本784维
 embedding_var = tf.Variable(mnist.test.images, name='mnist_embedding')
 
